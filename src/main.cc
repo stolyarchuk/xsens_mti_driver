@@ -20,14 +20,11 @@ int main(int argc, char** argv) {
 
   executor.add_node(node);
 
-  std::cout << "main1" << std::endl;
   while (rclcpp::ok()) {
     node->SpinFor(std::chrono::milliseconds{100});
     executor.spin_some();
   }
 
-  std::cout << "main4" << std::endl;
   rclcpp::shutdown();
-  std::cout << "main5" << std::endl;
   return EXIT_SUCCESS;
 }

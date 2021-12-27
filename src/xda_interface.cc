@@ -26,13 +26,12 @@ XdaInterface::XdaInterface(const std::string& name) : Node{name}, logger_{get_lo
   DeclareParameters();
   CreateController();
 
-  RCLCPP_INFO_STREAM(logger_, "XdaMtiDriver with node name /" << get_name() << " started");
+  RCLCPP_INFO_STREAM(logger_, "xda_mti_driver with node name /" << get_name() << " started");
 }
 
 XdaInterface::~XdaInterface() {
   RCLCPP_INFO(logger_, "cleaning up ...");
   Close();
-  RCLCPP_INFO(logger_, "cleaned up!");
 }
 
 void XdaInterface::SpinFor(const std::chrono::milliseconds& timeout) {
@@ -69,7 +68,6 @@ bool XdaInterface::Prepare() {
       return HandleError("could not start recording");
   }
 
-  RCLCPP_INFO(logger_, "prepared...");
   return true;
 }
 
@@ -85,7 +83,7 @@ bool XdaInterface::Connect() {
 
   /* Read device ID parameter */
   bool check_device_id = false;
-  std::string device_id = "07782593";
+  std::string device_id;
   if (rclcpp::Parameter device_id_param; get_parameter("device_id", device_id_param)) {
     device_id = device_id_param.as_string();
     check_device_id = true;
@@ -100,23 +98,18 @@ bool XdaInterface::Connect() {
 
     RCLCPP_INFO_STREAM(logger_, "found port name parameter: " << port_name);
     RCLCPP_INFO_STREAM(logger_, "scanning port " << port_name << "...");
-    RCLCPP_INFO_STREAM(logger_, "baud port " << baud << "...");
 
-    RCLCPP_INFO_STREAM(logger_, "baud port " << mti_port.deviceId());
+    if (!XsScanner::scanPort(mti_port, baud))
+      return HandleError("no MTi device found. Verify port and baudrate.");
 
-    // if (!XsScanner::scanPort(mti_port, baud))
-    //   return HandleError("no MTi device found. Verify port and baudrate.");
-
-    // if (check_device_id && mti_port.deviceId().toString() != device_id)
-    //   return HandleError("no MTi device found with matching device ID.");
+    if (check_device_id && mti_port.deviceId().toString() != device_id)
+      return HandleError("no MTi device found with matching device ID.");
 
   } else {
     RCLCPP_INFO(logger_, "scanning for devices...");
     XsPortInfoArray port_infos = XsScanner::scanPorts(baud);
-    RCLCPP_INFO(logger_, "stop scanning for devices...");
 
     for (auto const& port_info : port_infos) {
-      RCLCPP_INFO_STREAM(logger_, port_info.deviceId().toString());
       if (port_info.deviceId().isMti() || port_info.deviceId().isMtig()) {
         if (check_device_id) {
           if (port_info.deviceId().toString() == device_id) {
@@ -154,20 +147,12 @@ bool XdaInterface::Connect() {
 }
 
 void XdaInterface::Close() {
-  std::cout << "Close1" << std::endl;
   if (device_ != nullptr) {
-    std::cout << "Close2" << std::endl;
     device_->stopRecording();
-    std::cout << "Close3" << std::endl;
     device_->closeLogFile();
-    std::cout << "Close4" << std::endl;
     device_->removeCallbackHandler(&xda_callback_);
-    std::cout << "Close5" << std::endl;
   }
-  std::cout << "Close6" << std::endl;
-  std::cout << "Close16" << std::endl;
   control_->closePort(port_);
-  std::cout << "Close7" << std::endl;
 }
 
 void XdaInterface::RegisterPublishers() {
