@@ -39,7 +39,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Threads REQUIRED)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/xspublic_targets.targets)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/xspublic_targets.cmake)
 
 add_executable(
 	xsens_mti_driver
