@@ -1,8 +1,8 @@
-# Xsens MTi driver for ROS
+# Xsens MTi driver for ROS2
 
 ## Documentation
 
-You can find the full documentation in "<your MT SDK directory>/doc/xsensdeviceapi/doc/html/index.html" under "ROS MTi driver" section.
+You can find the full documentation in "\<MT SDK directory>/doc/xsensdeviceapi/doc/html/index.html" under "ROS MTi driver" section.
 
 ## Prerequisites
 
