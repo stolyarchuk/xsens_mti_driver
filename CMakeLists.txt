@@ -39,8 +39,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Threads REQUIRED)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/xspublic_targets.cmake)
-
 add_executable(
 	xsens_mti_driver
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cc
@@ -48,8 +46,27 @@ add_executable(
 	${CMAKE_CURRENT_SOURCE_DIR}/src/xda_callback.cc
 )
 
-target_include_directories(xsens_mti_driver PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/xspublic)
-target_link_libraries(xsens_mti_driver xscontroller xscommon xstypes Threads::Threads)
+# xsens dependency variants
+option(XSENS_USE_XDA "Use Xsens SDK." OFF)
+
+if(NOT XSENS_USE_XDA)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/xspublic_targets.cmake)
+  set(XDA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/lib/xspublic)
+  set(XDA_LIBS xscontroller xscommon xstypes)
+else()
+  if(NOT XSENS_INSTALL_PREFIX)
+    set(XSENS_INSTALL_PREFIX /usr/local/xsens)
+  endif()
+  find_library(XSENSDEVICEAPI_LIB libxsensdeviceapi.so ${XSENS_INSTALL_PREFIX}/lib)
+  find_library(XSTYPES_LIB libxstypes.so ${XSENS_INSTALL_PREFIX}/lib)
+  message(STATUS "${XSTYPES_LIB}")
+  target_compile_definitions(xsens_mti_driver PRIVATE XSENS_USE_XDA)
+  set(XDA_INCLUDES ${XSENS_INSTALL_PREFIX}/include)
+  set(XDA_LIBS ${XSENSDEVICEAPI_LIB} ${XSTYPES_LIB})
+endif()
+
+target_include_directories(xsens_mti_driver PUBLIC ${XDA_INCLUDES})
+target_link_libraries(xsens_mti_driver Threads::Threads ${XDA_LIBS})
   
 ament_target_dependencies(xsens_mti_driver
   rclcpp

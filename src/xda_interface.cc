@@ -22,6 +22,10 @@
 #include "messagepublishers/velocityincrementpublisher.h"
 #include "messagepublishers/velocitypublisher.h"
 
+#ifndef XSENS_USE_XDA
+Journaller* gJournal = nullptr;
+#endif
+
 XdaInterface::XdaInterface(const std::string& name) : Node{name}, logger_{get_logger()}, xda_callback_{get_clock()} {
   DeclareParameters();
   CreateController();
@@ -49,20 +53,23 @@ bool XdaInterface::Prepare() {
   if (!device_->gotoConfig())
     return HandleError("could not go to config");
 
-  // read EMTS and device config stored in .mtb file header.
+#ifndef XSENS_USE_XDA
+  /* read EMTS and device config stored in .mtb file header. */
   if (!device_->readEmtsAndDeviceConfiguration())
     return HandleError("could not read device configuration");
+#endif
 
   RCLCPP_INFO(logger_, "measuring ...");
   if (!device_->gotoMeasurement())
-    return HandleError("Could not put device into measurement mode");
+    return HandleError("could not put device into measurement mode");
 
-  if (rclcpp::Parameter log_file_param; get_parameter("log_file", log_file_param)) {
-    std::string log_file = log_file_param.as_string();
+  if (rclcpp::Parameter logfile_param; get_parameter("logfile", logfile_param)) {
+    const std::string& logfile = logfile_param.as_string();
+    RCLCPP_INFO_STREAM(logger_, "found logfile parameter: " << logfile);
 
-    if (device_->createLogFile(log_file) != XRV_OK)
-      return HandleError("failed to create a log file! (" + log_file + ")");
-    RCLCPP_INFO(logger_, "logging to %s...", log_file.c_str());
+    if (device_->createLogFile(logfile) != XRV_OK)
+      return HandleError("failed to create a log file! (" + logfile + ")");
+    RCLCPP_INFO(logger_, "logging to %s...", logfile.c_str());
 
     if (!device_->startRecording())
       return HandleError("could not start recording");
@@ -135,7 +142,7 @@ bool XdaInterface::Connect() {
   if (!control_->openPort(mti_port))
     return HandleError("could not open port");
 
-  device_ = std::shared_ptr<XsDevice>(control_->device(mti_port.deviceId()));
+  device_ = std::shared_ptr<XsDevice>(control_->device(mti_port.deviceId()), [](XsDevice*) {});
   assert(device_ != nullptr);
 
   RCLCPP_INFO(logger_, "device: %s, with ID: %s opened.", device_->productCode().toStdString().c_str(),
@@ -191,7 +198,7 @@ void XdaInterface::RegisterPublishers() {
 }
 
 void XdaInterface::DeclareParameters() {
-  declare_parameter("log_file");
+  declare_parameter("logfile");
 
   /* connection params */
   declare_parameter("port");
@@ -221,7 +228,13 @@ void XdaInterface::DeclareParameters() {
 
 void XdaInterface::CreateController() {
   RCLCPP_INFO(logger_, "creating XsControl object..");
-  control_ = std::shared_ptr<XsControl>(XsControl::construct());
+  control_ = std::shared_ptr<XsControl>(XsControl::construct(), [](XsControl* obj) { obj->destruct(); });
+
+#ifdef XSENS_USE_XDA
+  XsVersion version;
+  xdaVersion(&version);
+  RCLCPP_INFO_STREAM(logger_, "using XDA version: " << version.toString().toStdString());
+#endif
 }
 
 bool XdaInterface::HandleError(std::string_view error) {

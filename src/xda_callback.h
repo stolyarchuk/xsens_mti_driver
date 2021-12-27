@@ -12,17 +12,16 @@
 #include <xscontroller/xscallback.h>
 #include <xstypes/xsdatapacket.h>
 
-class XdaCallback : public XsCallback {
+class XdaCallback final: public XsCallback {
  public:
   using RosXsDataPacket = std::pair<rclcpp::Time, XsDataPacket>;
 
   explicit XdaCallback(rclcpp::Clock::SharedPtr clock, std::size_t max_buffer_size = 5);
-  ~XdaCallback() override = default;
 
   RosXsDataPacket Next(const std::chrono::milliseconds& timeout);
 
  protected:
-  void onLiveDataAvailable(XsDevice*, const XsDataPacket* packet) override;
+  void onLiveDataAvailable(XsDevice*, const XsDataPacket* packet) final;
 
  private:
   rclcpp::Clock::SharedPtr clock_;

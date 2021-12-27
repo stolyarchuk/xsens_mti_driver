@@ -5,19 +5,24 @@
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+
+#ifndef XSENS_USE_XDA
 #include <xscontroller/xscontrol_def.h>
 #include <xscontroller/xsdevice_def.h>
 #include <xstypes/xsportinfo.h>
+#else
+#include <xsensdeviceapi.h>
+#include <xstypes.h>
+#endif
 
 #include "messagepublishers/packetcallback.h"
 
 #include "xda_callback.h"
 
-class XdaInterface : public rclcpp::Node {
+class XdaInterface final : public rclcpp::Node {
  public:
   explicit XdaInterface(const std::string& name);
-  ~XdaInterface() override;
-
+  ~XdaInterface() final;
 
   bool Connect();
   bool Prepare();
@@ -39,10 +44,10 @@ class XdaInterface : public rclcpp::Node {
   void CreateController();
   bool HandleError(std::string_view error);
 
-  template <typename Cb>
+  template <typename T>
   void RegisterCallback() {
-    static_assert(std::is_base_of_v<PacketCallback, Cb>, "Callback must be inherited from PacketCallback");
-    callbacks_.emplace_back(std::make_shared<Cb>(shared_from_this()));
+    static_assert(std::is_base_of<PacketCallback, T>::value, "Callback must be inherited from PacketCallback");
+    callbacks_.emplace_back(std::make_shared<T>(shared_from_this()));
   }
 };
 

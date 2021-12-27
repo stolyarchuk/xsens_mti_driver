@@ -1,7 +1,7 @@
 #include "xda_callback.h"
 
 XdaCallback::XdaCallback(rclcpp::Clock::SharedPtr clock, std::size_t max_buffer_size)
-    : clock_{clock}
+    : clock_{std::move(clock)}
     , max_buffer_size_{max_buffer_size} {}
 
 XdaCallback::RosXsDataPacket XdaCallback::Next(const std::chrono::milliseconds& timeout) {
