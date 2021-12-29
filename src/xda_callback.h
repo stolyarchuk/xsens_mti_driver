@@ -12,7 +12,7 @@
 #include <xscontroller/xscallback.h>
 #include <xstypes/xsdatapacket.h>
 
-class XdaCallback final: public XsCallback {
+class XdaCallback final : public XsCallback {
  public:
   using RosXsDataPacket = std::pair<rclcpp::Time, XsDataPacket>;
 

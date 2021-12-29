@@ -26,7 +26,10 @@
 Journaller* gJournal = nullptr;
 #endif
 
-XdaInterface::XdaInterface(const std::string& name) : Node{name}, logger_{get_logger()}, xda_callback_{get_clock()} {
+XdaInterface::XdaInterface(const std::string& name)
+    : Node{name}
+    , logger_{get_logger()}
+    , xda_callback_{get_clock()} {
   DeclareParameters();
   CreateController();
 
@@ -63,7 +66,8 @@ bool XdaInterface::Prepare() {
   if (!device_->gotoMeasurement())
     return HandleError("could not put device into measurement mode");
 
-  if (rclcpp::Parameter logfile_param; get_parameter("logfile", logfile_param)) {
+  rclcpp::Parameter logfile_param;
+  if (get_parameter("logfile", logfile_param)) {
     const std::string& logfile = logfile_param.as_string();
     RCLCPP_INFO_STREAM(logger_, "found logfile parameter: " << logfile);
 
@@ -81,30 +85,30 @@ bool XdaInterface::Prepare() {
 bool XdaInterface::Connect() {
   /* Read baudrate parameter if set */
   XsBaudRate baud = XBR_Invalid;
-
-  if (rclcpp::Parameter baud_param; get_parameter("baud", baud_param)) {
-    auto baud_param_val = baud_param.as_int();
-    baud = XsBaud::numericToRate(static_cast<std::int32_t>(baud_param_val));
-    RCLCPP_INFO_STREAM(logger_, "found baud parameter: " << baud_param_val);
+  rclcpp::Parameter param;
+  if (get_parameter("baud", param)) {
+    auto baud_value = param.as_int();
+    baud = XsBaud::numericToRate(static_cast<std::int32_t>(baud_value));
+    RCLCPP_INFO_STREAM(logger_, "found baud parameter: " << baud_value);
   }
 
   /* Read device ID parameter */
   bool check_device_id = false;
   std::string device_id;
-  if (rclcpp::Parameter device_id_param; get_parameter("device_id", device_id_param)) {
-    device_id = device_id_param.as_string();
+  if (get_parameter("device_id", param)) {
+    device_id = param.as_string();
     check_device_id = true;
     RCLCPP_INFO_STREAM(logger_, "found device ID parameter: " << device_id);
   }
 
-  // Read port parameter if set
+  /* Read port parameter if set */
   XsPortInfo mti_port;
-  if (rclcpp::Parameter port_name_param; get_parameter("port", port_name_param)) {
-    const auto& port_name = port_name_param.as_string();
-    mti_port = XsPortInfo(port_name, baud);
+  if (get_parameter("port", param)) {
+    const auto& port = param.as_string();
+    mti_port = XsPortInfo(port, baud);
 
-    RCLCPP_INFO_STREAM(logger_, "found port name parameter: " << port_name);
-    RCLCPP_INFO_STREAM(logger_, "scanning port " << port_name << "...");
+    RCLCPP_INFO_STREAM(logger_, "found port name parameter: " << port);
+    RCLCPP_INFO_STREAM(logger_, "scanning port " << port << "...");
 
     if (!XsScanner::scanPort(mti_port, baud))
       return HandleError("no MTi device found. Verify port and baudrate.");
@@ -135,7 +139,8 @@ bool XdaInterface::Connect() {
     return HandleError("no MTi device found.");
 
   RCLCPP_INFO(logger_, "found a device with ID: %s @ port: %s, baudrate: %d",
-              mti_port.deviceId().toString().toStdString().c_str(), mti_port.portName().toStdString().c_str(),
+              mti_port.deviceId().toString().toStdString().c_str(),
+              mti_port.portName().toStdString().c_str(),
               XsBaud::rateToNumeric(mti_port.baudrate()));
 
   RCLCPP_INFO(logger_, "opening port %s ...", mti_port.portName().toStdString().c_str());
@@ -145,8 +150,8 @@ bool XdaInterface::Connect() {
   device_ = std::shared_ptr<XsDevice>(control_->device(mti_port.deviceId()), [](XsDevice*) {});
   assert(device_ != nullptr);
 
-  RCLCPP_INFO(logger_, "device: %s, with ID: %s opened.", device_->productCode().toStdString().c_str(),
-              device_->deviceId().toString().c_str());
+  RCLCPP_INFO(logger_, "device: %s, with ID: %s opened.",
+              device_->productCode().toStdString().c_str(), device_->deviceId().toString().c_str());
 
   device_->addCallbackHandler(&xda_callback_);
 
@@ -228,7 +233,8 @@ void XdaInterface::DeclareParameters() {
 
 void XdaInterface::CreateController() {
   RCLCPP_INFO(logger_, "creating XsControl object..");
-  control_ = std::shared_ptr<XsControl>(XsControl::construct(), [](XsControl* obj) { obj->destruct(); });
+  control_ =
+      std::shared_ptr<XsControl>(XsControl::construct(), [](XsControl* obj) { obj->destruct(); });
 
 #ifdef XSENS_USE_XDA
   XsVersion version;
@@ -237,7 +243,7 @@ void XdaInterface::CreateController() {
 #endif
 }
 
-bool XdaInterface::HandleError(std::string_view error) {
+bool XdaInterface::HandleError(const std::string& error) {
   RCLCPP_ERROR_STREAM(logger_, error);
   Close();
   return false;

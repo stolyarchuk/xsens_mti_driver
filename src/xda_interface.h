@@ -42,11 +42,12 @@ class XdaInterface final : public rclcpp::Node {
 
   void DeclareParameters();
   void CreateController();
-  bool HandleError(std::string_view error);
+  bool HandleError(const std::string& error);
 
   template <typename T>
   void RegisterCallback() {
-    static_assert(std::is_base_of<PacketCallback, T>::value, "Callback must be inherited from PacketCallback");
+    static_assert(std::is_base_of<PacketCallback, T>::value,
+                  "Callback must be inherited from PacketCallback");
     callbacks_.emplace_back(std::make_shared<T>(shared_from_this()));
   }
 };
